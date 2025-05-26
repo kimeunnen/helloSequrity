@@ -2,7 +2,8 @@
 
 from flask import Blueprint
 
-bp = Blueprint("restaurants", __name__)
+bp = Blueprint("restaurants", __name__, url_prefix="/")  # 딱 한 번만 선언!
+
 
 @bp.route("/")
 def root_index():
@@ -16,7 +17,6 @@ from sqlalchemy import func, distinct
 
 from datetime import time
 
-bp = Blueprint("restaurants", __name__, url_prefix="/") # 확장성 생각해 bp 사용함, 나중에 url 수정해주면 됨
 
 # READ - 메인 목록 리스트
 def index():
