@@ -5,7 +5,7 @@ from flask import Blueprint
 bp = Blueprint("restaurants", __name__)
 
 @bp.route("/")
-def index():
+def root_index():
     return "Hello, your Flask app is working!"
 
 
