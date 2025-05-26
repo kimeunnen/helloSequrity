@@ -1,6 +1,15 @@
 # restaurant.py
 
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint
+
+bp = Blueprint("restaurants", __name__)
+
+@bp.route("/")
+def index():
+    return "Hello, your Flask app is working!"
+
+
+from flask import render_template, request, redirect, url_for
 from helloSecurity import db
 from helloSecurity.models import Restaurant, Tag, RestaurantTag, TagCategory
 from sqlalchemy import func, distinct
