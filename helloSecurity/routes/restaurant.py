@@ -1,47 +1,34 @@
-# restaurant.py
-
-from flask import Blueprint
-
-bp = Blueprint("restaurants", __name__, url_prefix="/")  # 딱 한 번만 선언!
-
-
-@bp.route("/")
-def root_index():
-    return "Hello, your Flask app is working!"
-
-
-from flask import render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for
 from helloSecurity import db
 from helloSecurity.models import Restaurant, Tag, RestaurantTag, TagCategory
 from sqlalchemy import func, distinct
-
 from datetime import time
 
+# ✅ Blueprint 한 번만 선언
+bp = Blueprint("restaurants", __name__, url_prefix="/")
 
-# READ - 메인 목록 리스트
+# ✅ 메인 페이지: 태그 필터링 및 맛집 리스트 출력
+@bp.route("/", methods=["GET"])
 def index():
-    MIN_RATING = 4 # 별점 필터링 용 별점 (int)
+    MIN_RATING = 4
 
     high_rated = (Restaurant.query
                     .filter(Restaurant.rating >= MIN_RATING)
                     .order_by(Restaurant.id.desc())
-                    .all()) # 필터링이 적용된 db만 가져오기
-    
-    tag_ids     = request.args.getlist("tags", type=int) # 현재 선택된 태그 가져오기
-    
+                    .all())
+
+    tag_ids = request.args.getlist("tags", type=int)
     search_q = Restaurant.query
 
-    if tag_ids: # 태그 선택되어 있으면
+    if tag_ids:
         search_q = (search_q.join(RestaurantTag)
-               .filter(RestaurantTag.tag_id.in_(tag_ids))
-               .group_by(Restaurant.id)
-               .having(func.count(distinct(RestaurantTag.tag_id)) == len(tag_ids))
-               )
-        # join - 식당x태그 수 -> filter - 선택 태그 (tag_ids) 해당하는 것만 필터링 -> group_by(restaurant) - 식당 한 개당 한 묶음
-        # having - 동일 태그 중복 카운트 막기 위해 (선택 태그 수 == 이 식당이 가진 태그 수) 일치 시에만 통과하도록
+                             .filter(RestaurantTag.tag_id.in_(tag_ids))
+                             .group_by(Restaurant.id)
+                             .having(func.count(distinct(RestaurantTag.tag_id)) == len(tag_ids))
+                   )
 
-    restaurants = search_q.order_by(Restaurant.id.desc()).all() # 조건 해당하는거 전부 가져오기
-    categories = TagCategory.query.order_by(TagCategory.id).all() # 미리 저장된 태그 db 가져오기
+    restaurants = search_q.order_by(Restaurant.id.desc()).all()
+    categories = TagCategory.query.order_by(TagCategory.id).all()
 
     return render_template("restaurants/main.html",
                            restaurants=restaurants,
@@ -49,15 +36,14 @@ def index():
                            filtered=high_rated,
                            selected=set(tag_ids))
 
-# READ – 단일 게시글 상세
+# ✅ 상세 페이지
 @bp.route("/<int:r_id>")
 def detail(r_id):
     r = Restaurant.query.get_or_404(r_id)
     return render_template("restaurants/detail.html", restaurant=r)
 
-
-# CREATE - 기본 Create
-@bp.route("/new", methods=["GET", "POST"]) # naver.com/restaurant/update
+# ✅ 생성 페이지
+@bp.route("/new", methods=["GET", "POST"])
 def create():
     if request.method == "POST":
         start_time = time.fromisoformat(request.form["start_hour"])
@@ -86,21 +72,17 @@ def create():
 
     categories = TagCategory.query.order_by(TagCategory.id).all()
     return render_template("restaurants/create.html",
-                           tags=[],               # ← 안 써도 되지만 호환용
+                           tags=[],
                            categories=categories)
 
-# UPDATE ─ 기본 Update
+# ✅ 수정 페이지
 @bp.route("/<int:r_id>/edit", methods=["GET", "POST"])
 def edit(r_id):
     r = Restaurant.query.get_or_404(r_id)
 
     if request.method == "POST":
-
-        start_str = request.form["start_hour"]
-        end_str   = request.form["end_hour"]
-
-        start_time = time.fromisoformat(start_str)
-        end_time   = time.fromisoformat(end_str)
+        start_time = time.fromisoformat(request.form["start_hour"])
+        end_time   = time.fromisoformat(request.form["end_hour"])
 
         r.name = request.form["name"]
         r.address = request.form["address"]
@@ -121,13 +103,13 @@ def edit(r_id):
         return redirect(url_for("restaurants.index"))
 
     categories = TagCategory.query.order_by(TagCategory.id).all()
-    attached = {rel.tag_id for rel in r.tags} # 수정 폼에 미리 체크되어있음
+    attached = {rel.tag_id for rel in r.tags}
     return render_template("restaurants/create.html",
                            restaurant=r,
                            categories=categories,
                            attached=attached)
 
-# DELETE ─ 기본 Delete
+# ✅ 삭제 기능
 @bp.route("/<int:r_id>/delete", methods=["POST"])
 def delete(r_id):
     r = Restaurant.query.get_or_404(r_id)
